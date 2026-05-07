@@ -2,885 +2,1131 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>キオクイズ — Memory Runner</title>
-<meta name="description" content="走って覚える、走って答える。3レーンのメモリーランナー。ゲートを通り抜けると記憶になり、やがてクイズゲートが立ちはだかる。">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#0c0a1f">
+<title>キオクイズ — Kiokuiz</title>
+<meta name="description" content="自分の好みを答えるうち、いつしか過去の自分が出題者になる。記憶のキャパシティを試される4択ゲーム。">
+<meta property="og:title" content="キオクイズ — Kiokuiz">
+<meta property="og:description" content="自分の好みを答えるうち、いつしか過去の自分が出題者になる。">
+<meta property="og:type" content="website">
 <style>
-*{margin:0;padding:0;box-sizing:border-box}
-html,body{width:100%;height:100%;overflow:hidden;background:#0a0420;font-family:'Helvetica Neue',Arial,sans-serif;color:#e8d8ff;touch-action:none;user-select:none;-webkit-user-select:none}
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+html, body {
+    width:100%; min-height:100%;
+    overscroll-behavior:none;
+    user-select:none; -webkit-user-select:none;
+}
+body {
+    font-family: -apple-system, "Hiragino Maru Gothic ProN", "Yu Gothic UI", "Segoe UI", "Helvetica Neue", sans-serif;
+    background:
+        radial-gradient(ellipse at 20% 0%, #2a1860 0%, transparent 55%),
+        radial-gradient(ellipse at 90% 90%, #4a1a6a 0%, transparent 55%),
+        linear-gradient(180deg, #0e0825 0%, #0a0420 60%, #060214 100%);
+    color: #fff;
+    min-height: 100vh;
+    overflow-x: hidden;
+    position: relative;
+    padding-bottom: env(safe-area-inset-bottom, 0);
+}
 
-/* ── Title Screen ── */
-#title-screen{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:radial-gradient(ellipse at 50% 35%,#3a1a6a 0%,#1a0a3a 50%,#0a0420 100%);z-index:100;transition:opacity 0.8s;padding:20px}
-#title-screen.hidden{opacity:0;pointer-events:none}
-.title-main{font-size:clamp(40px,9vw,82px);font-weight:900;letter-spacing:4px;color:#d8b8ff;text-shadow:0 0 50px rgba(180,140,255,0.6)}
-.title-sub{font-size:clamp(13px,3vw,18px);color:#9070c0;margin-top:6px;letter-spacing:6px;font-weight:300}
-.title-tag{font-size:clamp(14px,3.2vw,20px);color:#b48cff;margin-top:34px;letter-spacing:1px;font-weight:600;text-align:center}
-.title-desc{max-width:480px;text-align:center;font-size:clamp(12px,2.6vw,14px);color:#7a6090;line-height:1.9;margin:18px 10px 0}
-.title-start{margin-top:38px;padding:16px 56px;background:none;border:2px solid #b48cff;border-radius:60px;color:#d8b8ff;font-size:16px;font-weight:700;letter-spacing:4px;cursor:pointer;transition:all 0.3s}
-.title-start:hover,.title-start:active{background:#b48cff;color:#1a0a3a;box-shadow:0 0 30px rgba(180,140,255,0.5)}
-.lang-toggle{position:absolute;top:14px;right:14px;background:none;border:1px solid #4a3060;color:#9070c0;padding:6px 14px;border-radius:20px;font-size:12px;cursor:pointer}
-.title-symbols{display:flex;gap:14px;margin-top:24px;font-size:24px;opacity:0.4;animation:driftSym 6s ease-in-out infinite}
-@keyframes driftSym{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+/* twinkles */
+.stars {
+    position: fixed; inset: 0; pointer-events: none; z-index: 0;
+    background-image:
+        radial-gradient(1px 1px at 18% 28%, #fff 0%, transparent 100%),
+        radial-gradient(1px 1px at 72% 64%, #fff 0%, transparent 100%),
+        radial-gradient(1px 1px at 42% 82%, #fff 0%, transparent 100%),
+        radial-gradient(1px 1px at 88% 18%, #fff 0%, transparent 100%),
+        radial-gradient(1px 1px at 52% 48%, #fff 0%, transparent 100%),
+        radial-gradient(2px 2px at 12% 72%, #ffd166 0%, transparent 100%),
+        radial-gradient(1.5px 1.5px at 84% 38%, #c084fc 0%, transparent 100%);
+    opacity: 0.45;
+    animation: twinkle 4.5s ease-in-out infinite;
+}
+@keyframes twinkle { 0%,100%{opacity:0.35} 50%{opacity:0.65} }
 
-/* ── Game UI ── */
-#game-container{position:absolute;inset:0;display:none;flex-direction:column}
-#game-container.active{display:flex}
+/* ── Top bar ── */
+.topbar {
+    position: sticky; top: 0; z-index: 50;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 14px 10px;
+    background: linear-gradient(to bottom, rgba(10,4,32,0.92) 0%, rgba(10,4,32,0.4) 100%);
+    backdrop-filter: blur(8px);
+}
+.title-block { display:flex; align-items:center; gap:10px; min-width: 0; }
+.title-mark {
+    width: 38px; height: 38px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #c084fc 0%, #f472b6 50%, #fb923c 100%);
+    display:flex; align-items:center; justify-content:center;
+    font-size: 20px;
+    box-shadow: 0 4px 14px rgba(192,132,252,0.4);
+    flex-shrink: 0;
+}
+.title-text { font-weight: 800; font-size: 17px; letter-spacing: -0.2px; }
+.title-sub { font-size: 9px; color: #c9bfee; letter-spacing: 1.2px; text-transform: uppercase; }
+.topbtns { display: flex; gap: 6px; flex-shrink: 0; }
+.icon-btn {
+    width: 38px; height: 38px;
+    border-radius: 11px;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.14);
+    color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    font-size: 16px;
+    transition: transform 0.12s, background 0.15s;
+}
+.icon-btn:active { transform: scale(0.92); background: rgba(255,255,255,0.18); }
+.lang-pill { width: auto; padding: 0 11px; font-size: 11px; font-weight: 700; letter-spacing: 0.5px; }
 
-.top-bar{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#0d0524;border-bottom:1px solid #2a1850;flex-shrink:0;gap:8px;flex-wrap:wrap}
-.hud-stat{display:flex;align-items:center;gap:5px;font-size:13px;color:#b48cff;font-weight:700;white-space:nowrap}
-.hud-icon{font-size:16px}
-.hud-lives{color:#ff8090}
+/* ── Screens ── */
+.screen { display: none; padding: 16px 18px 32px; max-width: 480px; margin: 0 auto; position: relative; z-index: 1; }
+.screen.active { display: block; animation: fadein 0.3s ease; }
+@keyframes fadein { from {opacity:0; transform: translateY(8px);} to {opacity:1; transform:none;} }
 
-#game-canvas{flex:1 1 0;min-height:0;width:100%;display:block;cursor:pointer}
+/* ── Home ── */
+.hero {
+    text-align: center;
+    padding: 24px 8px 18px;
+}
+.hero-mark {
+    width: 92px; height: 92px;
+    border-radius: 28px;
+    background: linear-gradient(135deg, #c084fc 0%, #f472b6 50%, #fb923c 100%);
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 50px;
+    margin-bottom: 14px;
+    box-shadow: 0 10px 30px rgba(192,132,252,0.35);
+    position: relative;
+}
+.hero-mark::after {
+    content: ""; position: absolute; inset: -6px; border-radius: 32px;
+    border: 2px solid rgba(192,132,252,0.35);
+    animation: pulse 2.4s ease-in-out infinite;
+}
+@keyframes pulse { 0%,100%{transform:scale(1); opacity:0.7} 50%{transform:scale(1.05); opacity:0.3} }
+.hero-title { font-size: 30px; font-weight: 800; margin-bottom: 6px; letter-spacing: -0.5px; }
+.hero-title .accent { background: linear-gradient(135deg, #f472b6, #fb923c); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.hero-tag { color: #c9bfee; font-size: 13px; letter-spacing: 1px; margin-bottom: 22px; }
+.rules {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 18px;
+    padding: 16px 18px;
+    margin-bottom: 22px;
+    text-align: left;
+}
+.rules-title {
+    font-size: 12px; font-weight: 700; color: #c084fc;
+    letter-spacing: 1.5px; margin-bottom: 12px;
+}
+.rule { display: flex; gap: 10px; margin-bottom: 10px; font-size: 13px; line-height: 1.55; color: #e8e3ff; }
+.rule:last-child { margin-bottom: 0; }
+.rule-icon {
+    flex-shrink: 0; width: 22px; height: 22px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 800;
+    background: rgba(192,132,252,0.18); color: #c084fc;
+    margin-top: 1px;
+}
+.rule-icon.kioku { background: rgba(167,139,250,0.2); color: #a78bfa; }
+.rule-icon.quiz  { background: rgba(244,114,182,0.2); color: #f472b6; }
+.rule-icon.bad   { background: rgba(248,113,113,0.2); color: #f87171; }
+.start-btn {
+    display: block;
+    width: 100%;
+    padding: 18px 20px;
+    border: none;
+    border-radius: 18px;
+    background: linear-gradient(135deg, #c084fc 0%, #f472b6 60%, #fb923c 100%);
+    color: #fff;
+    font-size: 17px;
+    font-weight: 800;
+    letter-spacing: 1px;
+    cursor: pointer;
+    box-shadow: 0 8px 24px rgba(192,132,252,0.4);
+    transition: transform 0.12s, box-shadow 0.12s;
+}
+.start-btn:active { transform: scale(0.97); box-shadow: 0 4px 12px rgba(192,132,252,0.3); }
+.best-score-line {
+    text-align: center;
+    margin-top: 14px;
+    color: #c9bfee;
+    font-size: 12px;
+    letter-spacing: 0.5px;
+}
+.best-score-line strong { color: #ffd166; font-weight: 800; }
 
-.bottom-hint{padding:8px 14px;background:#0d0524;border-top:1px solid #2a1850;text-align:center;font-size:11px;color:#5a4a78;flex-shrink:0;letter-spacing:1px}
+/* ── Game screen ── */
+.game-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 14px;
+}
+.stat-cell {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 12px;
+    padding: 8px 10px;
+    text-align: center;
+}
+.stat-label { font-size: 9px; color: #b8b3d8; letter-spacing: 1.2px; text-transform: uppercase; margin-bottom: 2px; }
+.stat-value { font-size: 18px; font-weight: 800; color: #fff; }
+.stat-value.brain { color: #a78bfa; }
+.stat-value.score { color: #fbbf24; }
+.stat-value.best  { color: #f472b6; }
 
-/* ── Result Screen ── */
-#result-screen{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;background:rgba(10,4,32,0.96);z-index:200;padding:20px;text-align:center}
-#result-screen.active{display:flex}
-.result-title{font-size:clamp(28px,6vw,44px);font-weight:900;color:#d8b8ff;margin-bottom:8px;letter-spacing:2px}
-.result-subtitle{font-size:14px;color:#7a6090;margin-bottom:28px;max-width:380px;line-height:1.7}
-.result-stats{display:flex;gap:24px;margin-bottom:28px;flex-wrap:wrap;justify-content:center}
-.result-stat{text-align:center}
-.result-stat-val{font-size:32px;font-weight:900;color:#b48cff}
-.result-stat-lbl{font-size:11px;color:#5a4a78;letter-spacing:2px;text-transform:uppercase;margin-top:2px}
-.insight-box{max-width:460px;background:#1a0a3a;border:1px solid #3a2060;border-radius:14px;padding:18px 22px;margin-bottom:24px}
-.insight-text{font-size:13px;color:#b48cff;line-height:1.9}
-.result-btn{padding:14px 44px;background:none;border:2px solid #b48cff;border-radius:50px;color:#d8b8ff;font-size:14px;font-weight:700;letter-spacing:3px;cursor:pointer}
-.result-btn:hover,.result-btn:active{background:#b48cff;color:#1a0a3a}
+.phase-card {
+    border-radius: 22px;
+    padding: 22px 18px 24px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.35);
+    border: 2px solid rgba(255,255,255,0.08);
+    transition: background 0.4s, border-color 0.4s;
+    position: relative;
+    overflow: hidden;
+}
+.phase-card.kioku {
+    background: linear-gradient(160deg, #2e1f6b 0%, #1a1248 60%, #0e0a32 100%);
+    border-color: rgba(167,139,250,0.45);
+}
+.phase-card.quiz {
+    background: linear-gradient(160deg, #5a1a3e 0%, #3a0d2a 50%, #1f0618 100%);
+    border-color: rgba(244,114,182,0.55);
+}
 
-/* ── Tutorial overlay ── */
-.tutorial{position:absolute;inset:0;background:rgba(10,4,32,0.92);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:150;padding:24px;text-align:center}
-.tutorial.hidden{display:none}
-.tut-step{max-width:420px}
-.tut-step h3{font-size:22px;color:#d8b8ff;margin-bottom:14px;letter-spacing:1px}
-.tut-step p{font-size:13px;color:#9070c0;line-height:1.9;margin-bottom:22px;white-space:pre-line}
-.tut-next{padding:11px 36px;background:none;border:1px solid #b48cff;border-radius:30px;color:#d8b8ff;font-size:13px;cursor:pointer;letter-spacing:2px}
-.tut-next:hover,.tut-next:active{background:#b48cff;color:#1a0a3a}
-.tut-icons{font-size:36px;letter-spacing:18px;margin-bottom:18px;opacity:0.8}
+.phase-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 5px 12px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 1.5px;
+    margin-bottom: 14px;
+}
+.phase-card.kioku .phase-badge {
+    background: rgba(167,139,250,0.18);
+    color: #c4b5fd;
+    border: 1px solid rgba(167,139,250,0.45);
+}
+.phase-card.quiz .phase-badge {
+    background: rgba(244,114,182,0.18);
+    color: #fbcfe8;
+    border: 1px solid rgba(244,114,182,0.55);
+    animation: questPulse 1.6s ease-in-out infinite;
+}
+@keyframes questPulse {
+    0%,100% { box-shadow: 0 0 0 0 rgba(244,114,182,0.4); }
+    50% { box-shadow: 0 0 0 5px rgba(244,114,182,0); }
+}
+
+.phase-hint {
+    font-size: 11px;
+    color: #c9bfee;
+    margin-bottom: 6px;
+    letter-spacing: 0.4px;
+}
+.phase-card.quiz .phase-hint { color: #fbcfe8; }
+
+.question {
+    font-size: 22px;
+    font-weight: 800;
+    line-height: 1.45;
+    margin-bottom: 22px;
+    min-height: 64px;
+    color: #fff;
+    word-break: break-word;
+}
+
+.choices {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+}
+.choice {
+    background: rgba(255,255,255,0.07);
+    border: 1.5px solid rgba(255,255,255,0.18);
+    color: #fff;
+    padding: 16px 16px;
+    border-radius: 14px;
+    font-size: 15px;
+    font-weight: 700;
+    text-align: left;
+    cursor: pointer;
+    line-height: 1.4;
+    transition: transform 0.1s, background 0.15s, border-color 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-height: 56px;
+    font-family: inherit;
+}
+.choice:active { transform: scale(0.98); }
+.phase-card.kioku .choice:hover { background: rgba(167,139,250,0.16); border-color: rgba(167,139,250,0.6); }
+.phase-card.quiz  .choice:hover { background: rgba(244,114,182,0.16); border-color: rgba(244,114,182,0.6); }
+
+.choice-num {
+    flex-shrink: 0;
+    width: 26px; height: 26px;
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px;
+    font-weight: 800;
+    background: rgba(255,255,255,0.12);
+    color: #fff;
+    letter-spacing: 0.5px;
+}
+.phase-card.kioku .choice-num { background: rgba(167,139,250,0.3); color: #ddd6fe; }
+.phase-card.quiz  .choice-num { background: rgba(244,114,182,0.3); color: #fce7f3; }
+
+.choice.correct {
+    background: rgba(34,197,94,0.25) !important;
+    border-color: rgba(34,197,94,0.7) !important;
+    animation: flashGreen 0.5s ease;
+}
+.choice.wrong {
+    background: rgba(239,68,68,0.25) !important;
+    border-color: rgba(239,68,68,0.75) !important;
+    animation: shake 0.45s ease;
+}
+.choice.dim { opacity: 0.4; }
+@keyframes flashGreen {
+    0%,100% { box-shadow: 0 0 0 0 rgba(34,197,94,0); }
+    50% { box-shadow: 0 0 0 6px rgba(34,197,94,0.3); }
+}
+@keyframes shake {
+    0%,100% { transform: translateX(0); }
+    20% { transform: translateX(-6px); }
+    40% { transform: translateX(6px); }
+    60% { transform: translateX(-4px); }
+    80% { transform: translateX(4px); }
+}
+
+/* memory growth visualization */
+.brain-strip {
+    margin-top: 14px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    justify-content: center;
+    min-height: 18px;
+}
+.memory-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #a78bfa, #c084fc);
+    box-shadow: 0 0 6px rgba(167,139,250,0.5);
+    animation: dotpop 0.35s ease;
+}
+@keyframes dotpop {
+    0% { transform: scale(0); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+/* ── Game over ── */
+.over-card {
+    background: linear-gradient(160deg, #4a0a1c 0%, #2a0612 60%, #0e030a 100%);
+    border: 2px solid rgba(248,113,113,0.4);
+    border-radius: 22px;
+    padding: 24px 18px 22px;
+    text-align: center;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    margin-bottom: 16px;
+}
+.over-emoji { font-size: 56px; margin-bottom: 8px; }
+.over-title { font-size: 22px; font-weight: 800; margin-bottom: 4px; color: #fff; }
+.over-sub { color: #fda4af; font-size: 12px; letter-spacing: 1px; margin-bottom: 16px; }
+.over-result {
+    background: rgba(0,0,0,0.3);
+    border-radius: 14px;
+    padding: 14px;
+    text-align: left;
+    margin-bottom: 14px;
+}
+.over-result-label { font-size: 10px; letter-spacing: 1.5px; color: #fda4af; margin-bottom: 6px; }
+.over-result-q { font-size: 14px; font-weight: 700; margin-bottom: 10px; color: #fff; line-height: 1.4; }
+.over-row {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 12px;
+    border-radius: 10px;
+    font-size: 13px;
+    margin-bottom: 6px;
+}
+.over-row.you { background: rgba(248,113,113,0.18); color: #fecaca; border: 1px solid rgba(248,113,113,0.4); }
+.over-row.past { background: rgba(34,197,94,0.18); color: #bbf7d0; border: 1px solid rgba(34,197,94,0.4); }
+.over-row strong { font-weight: 800; }
+.over-row .lab { font-size: 9px; letter-spacing: 1px; opacity: 0.8; min-width: 56px; flex-shrink: 0; }
+.over-stats {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+    margin-bottom: 18px;
+}
+.over-stat {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 12px;
+    padding: 12px 8px;
+    text-align: center;
+}
+.over-stat-label { font-size: 10px; letter-spacing: 1.2px; color: #b8b3d8; margin-bottom: 3px; }
+.over-stat-value { font-size: 22px; font-weight: 800; }
+.over-stat.score .over-stat-value { color: #fbbf24; }
+.over-stat.best  .over-stat-value { color: #f472b6; }
+.over-best-tag {
+    display: inline-block;
+    margin-top: 6px;
+    padding: 3px 9px;
+    background: rgba(251,191,36,0.2);
+    color: #fde68a;
+    border: 1px solid rgba(251,191,36,0.5);
+    border-radius: 999px;
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 1.5px;
+}
+
+.again-btn {
+    display: block;
+    width: 100%;
+    padding: 16px 20px;
+    border: none;
+    border-radius: 16px;
+    background: linear-gradient(135deg, #c084fc 0%, #f472b6 60%, #fb923c 100%);
+    color: #fff;
+    font-size: 16px;
+    font-weight: 800;
+    letter-spacing: 1px;
+    cursor: pointer;
+    box-shadow: 0 6px 20px rgba(192,132,252,0.35);
+    transition: transform 0.12s;
+}
+.again-btn:active { transform: scale(0.97); }
+.home-btn {
+    display: block;
+    width: 100%;
+    margin-top: 8px;
+    padding: 12px;
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.18);
+    color: #c9bfee;
+    font-size: 13px;
+    font-weight: 700;
+    border-radius: 14px;
+    cursor: pointer;
+    font-family: inherit;
+}
+.home-btn:active { background: rgba(255,255,255,0.05); }
+
+/* burden indicator on later rounds */
+.burden-msg {
+    text-align: center;
+    margin-top: 8px;
+    font-size: 11px;
+    color: #c4b5fd;
+    letter-spacing: 0.5px;
+    min-height: 14px;
+}
+.burden-msg.heavy { color: #fbbf24; }
+.burden-msg.crisis { color: #f87171; animation: throb 1.2s ease-in-out infinite; }
+@keyframes throb { 0%,100%{opacity:1} 50%{opacity:0.6} }
+
+/* footer */
+.footer {
+    text-align: center;
+    padding: 20px 12px 8px;
+    color: #6c5fa3;
+    font-size: 10px;
+    letter-spacing: 0.5px;
+}
+.footer a { color: #8b80b8; text-decoration: none; }
 </style>
 </head>
 <body>
+<div class="stars"></div>
 
-<!-- ── Title Screen ── -->
-<div id="title-screen">
-    <button class="lang-toggle" onclick="toggleLang()" id="lang-btn">EN</button>
-    <div class="title-main" data-i="titleMain">キオクイズ</div>
-    <div class="title-sub" data-i="titleSub">MEMORY RUNNER</div>
-    <div class="title-symbols">🐱 🌙 🍎 ⚡ 🌸</div>
-    <div class="title-tag" data-i="titleTag">走って覚える、走って答える。</div>
-    <div class="title-desc" data-i="titleDesc">3つのレーンを駆け抜けながら、ゲートに浮かぶ記号を記憶する。やがて立ちはだかるクイズゲートで、覚えた記号を選び抜け。</div>
-    <button class="title-start" onclick="startGame()" data-i="titleStart">はじめる</button>
-</div>
-
-<!-- ── Game Container ── -->
-<div id="game-container">
-    <div class="top-bar">
-        <div class="hud-stat hud-lives"><span class="hud-icon">❤️</span><span id="hud-lives">×3</span></div>
-        <div class="hud-stat"><span class="hud-icon">⭐</span><span data-i="hudScore">SCORE</span><span id="hud-score">0</span></div>
-        <div class="hud-stat"><span class="hud-icon">🔥</span><span data-i="hudCombo">COMBO</span><span id="hud-combo">0</span></div>
-        <div class="hud-stat"><span class="hud-icon">📏</span><span id="hud-level">Lv.1</span></div>
+<div class="topbar">
+    <div class="title-block">
+        <div class="title-mark">🧠</div>
+        <div>
+            <div class="title-text" id="appTitle">キオクイズ</div>
+            <div class="title-sub">KIOKUIZ</div>
+        </div>
     </div>
-    <canvas id="game-canvas"></canvas>
-    <div class="bottom-hint" data-i="hint">← 左タップ／右タップ →</div>
-</div>
-
-<!-- ── Tutorial ── -->
-<div class="tutorial hidden" id="tutorial">
-    <div class="tut-step" id="tut-content"></div>
-</div>
-
-<!-- ── Result Screen ── -->
-<div id="result-screen">
-    <div class="result-title" id="result-title"></div>
-    <div class="result-subtitle" id="result-subtitle"></div>
-    <div class="result-stats" id="result-stats"></div>
-    <div class="insight-box">
-        <div class="insight-text" id="insight-text"></div>
+    <div class="topbtns">
+        <button class="icon-btn lang-pill" id="langBtn">JP</button>
+        <button class="icon-btn" id="homeBtn" title="home">🏠</button>
     </div>
-    <button class="result-btn" onclick="restartGame()" data-i="resultRestart">もう一度</button>
+</div>
+
+<!-- ── Home screen ── -->
+<div class="screen active" id="homeScreen">
+    <div class="hero">
+        <div class="hero-mark">🧠</div>
+        <h1 class="hero-title"><span class="accent" id="heroTitle">キオクイズ</span></h1>
+        <div class="hero-tag" id="heroTag">あなたの「好み」が、いつしか「問題」になる</div>
+    </div>
+    <div class="rules">
+        <div class="rules-title" id="rulesTitle">ルール</div>
+        <div class="rule">
+            <div class="rule-icon kioku">記</div>
+            <div id="rule1"><strong>キオクフェーズ</strong>では、4択から自分の好みを答える。</div>
+        </div>
+        <div class="rule">
+            <div class="rule-icon quiz">問</div>
+            <div id="rule2"><strong>クイズフェーズ</strong>では、過去の自分の答えを思い出す。</div>
+        </div>
+        <div class="rule">
+            <div class="rule-icon bad">×</div>
+            <div id="rule3">過去の自分を間違えたら<strong>終了</strong>。</div>
+        </div>
+        <div class="rule">
+            <div class="rule-icon">∞</div>
+            <div id="rule4">続けるほど、覚える「好み」が積み重なっていく。</div>
+        </div>
+    </div>
+    <button class="start-btn" id="startBtn">スタート</button>
+    <div class="best-score-line" id="bestScoreLine"></div>
+</div>
+
+<!-- ── Game screen ── -->
+<div class="screen" id="gameScreen">
+    <div class="game-stats">
+        <div class="stat-cell">
+            <div class="stat-label" id="statBrainLabel">記憶</div>
+            <div class="stat-value brain" id="statBrain">0</div>
+        </div>
+        <div class="stat-cell">
+            <div class="stat-label" id="statScoreLabel">スコア</div>
+            <div class="stat-value score" id="statScore">0</div>
+        </div>
+        <div class="stat-cell">
+            <div class="stat-label" id="statBestLabel">ベスト</div>
+            <div class="stat-value best" id="statBest">0</div>
+        </div>
+    </div>
+    <div class="phase-card kioku" id="phaseCard">
+        <div class="phase-badge" id="phaseBadge">記 キオク</div>
+        <div class="phase-hint" id="phaseHint">あなたの好みを選んでください</div>
+        <div class="question" id="questionText">―</div>
+        <div class="choices" id="choices"></div>
+    </div>
+    <div class="burden-msg" id="burdenMsg"></div>
+</div>
+
+<!-- ── Game over screen ── -->
+<div class="screen" id="overScreen">
+    <div class="over-card">
+        <div class="over-emoji">💔</div>
+        <div class="over-title" id="overTitle">記憶ロスト</div>
+        <div class="over-sub" id="overSub">過去の自分とすれ違った</div>
+        <div class="over-result" id="overResult"></div>
+    </div>
+    <div class="over-stats">
+        <div class="over-stat score">
+            <div class="over-stat-label" id="overStatScoreLabel">スコア</div>
+            <div class="over-stat-value" id="overStatScore">0</div>
+        </div>
+        <div class="over-stat best">
+            <div class="over-stat-label" id="overStatBestLabel">ベスト</div>
+            <div class="over-stat-value" id="overStatBest">0</div>
+        </div>
+    </div>
+    <div id="bestBadgeWrap" style="text-align:center; margin-bottom: 14px; display:none;">
+        <span class="over-best-tag" id="bestBadge">★ NEW BEST</span>
+    </div>
+    <button class="again-btn" id="againBtn">もう一度</button>
+    <button class="home-btn" id="overHomeBtn">ホーム</button>
+</div>
+
+<div class="footer">
+    <a href="https://pndshch.github.io/" target="_blank">← Pinda Lab</a>
 </div>
 
 <script>
-// ══════════════════════════════════════════════
-//  キオクイズ — Memory Runner
-//  Pass memory gates to remember; choose the right
-//  door at quiz gates to advance.
-// ══════════════════════════════════════════════
+// ════════════════════════════════════════════
+//   Question pool — each question has 4 choices
+//   q  = question text  (ja / en)
+//   c  = 4 choices      (ja / en, same order)
+// ════════════════════════════════════════════
+const QUESTIONS = [
+    // ── 食 ──
+    { q:{ja:"朝ごはんで食べたいのは？", en:"Breakfast of choice?"},
+      c:[{ja:"ごはん",en:"Rice"},{ja:"パン",en:"Bread"},{ja:"シリアル",en:"Cereal"},{ja:"食べない",en:"Skip it"}] },
+    { q:{ja:"ラーメン派は？", en:"Ramen broth?"},
+      c:[{ja:"醤油",en:"Shōyu"},{ja:"味噌",en:"Miso"},{ja:"塩",en:"Shio"},{ja:"豚骨",en:"Tonkotsu"}] },
+    { q:{ja:"お寿司で最初に食べる？", en:"First sushi to grab?"},
+      c:[{ja:"マグロ",en:"Tuna"},{ja:"サーモン",en:"Salmon"},{ja:"イカ",en:"Squid"},{ja:"たまご",en:"Tamago"}] },
+    { q:{ja:"カレーは？", en:"Curry spice?"},
+      c:[{ja:"甘口",en:"Mild"},{ja:"中辛",en:"Medium"},{ja:"辛口",en:"Hot"},{ja:"激辛",en:"Inferno"}] },
+    { q:{ja:"パスタの定番は？", en:"Pasta of choice?"},
+      c:[{ja:"ペペロンチーノ",en:"Peperoncino"},{ja:"ボロネーゼ",en:"Bolognese"},{ja:"カルボナーラ",en:"Carbonara"},{ja:"トマト",en:"Pomodoro"}] },
+    { q:{ja:"おにぎりの具は？", en:"Onigiri filling?"},
+      c:[{ja:"鮭",en:"Salmon"},{ja:"梅",en:"Umeboshi"},{ja:"ツナマヨ",en:"Tuna mayo"},{ja:"おかか",en:"Bonito"}] },
+    { q:{ja:"焼き肉で頼むのは？", en:"Yakiniku cut?"},
+      c:[{ja:"カルビ",en:"Karubi"},{ja:"ハラミ",en:"Harami"},{ja:"タン",en:"Tan"},{ja:"ホルモン",en:"Hormone"}] },
+    { q:{ja:"卵料理は？", en:"Egg style?"},
+      c:[{ja:"目玉焼き",en:"Sunny-side"},{ja:"オムレツ",en:"Omelette"},{ja:"ゆで",en:"Boiled"},{ja:"スクランブル",en:"Scramble"}] },
+    { q:{ja:"ピザの定番は？", en:"Pizza topping?"},
+      c:[{ja:"マルゲリータ",en:"Margherita"},{ja:"ペパロニ",en:"Pepperoni"},{ja:"ハワイアン",en:"Hawaiian"},{ja:"シーフード",en:"Seafood"}] },
+    { q:{ja:"餃子は？", en:"Gyoza style?"},
+      c:[{ja:"焼き",en:"Fried"},{ja:"水",en:"Boiled"},{ja:"揚げ",en:"Deep-fried"},{ja:"蒸し",en:"Steamed"}] },
+    { q:{ja:"ハンバーガーの中身は？", en:"Burger?"},
+      c:[{ja:"ビーフ",en:"Beef"},{ja:"チーズ",en:"Cheese"},{ja:"照り焼き",en:"Teriyaki"},{ja:"フィッシュ",en:"Fish"}] },
+    { q:{ja:"夜食食べるなら？", en:"Late-night snack?"},
+      c:[{ja:"ラーメン",en:"Ramen"},{ja:"おにぎり",en:"Onigiri"},{ja:"アイス",en:"Ice cream"},{ja:"食べない",en:"Skip"}] },
+    { q:{ja:"パン屋で買う？", en:"Bakery pick?"},
+      c:[{ja:"食パン",en:"Loaf"},{ja:"クロワッサン",en:"Croissant"},{ja:"メロンパン",en:"Melonpan"},{ja:"カレーパン",en:"Curry bun"}] },
+    { q:{ja:"ランチは？", en:"Lunch style?"},
+      c:[{ja:"定食",en:"Teishoku"},{ja:"麺類",en:"Noodles"},{ja:"弁当",en:"Bento"},{ja:"カフェ",en:"Café"}] },
+    { q:{ja:"居酒屋の最初は？", en:"Izakaya first dish?"},
+      c:[{ja:"枝豆",en:"Edamame"},{ja:"唐揚げ",en:"Karaage"},{ja:"刺身",en:"Sashimi"},{ja:"お通し",en:"Otōshi"}] },
+    { q:{ja:"デザートは？", en:"Dessert?"},
+      c:[{ja:"ケーキ",en:"Cake"},{ja:"アイス",en:"Ice cream"},{ja:"プリン",en:"Pudding"},{ja:"フルーツ",en:"Fruit"}] },
 
-let LANG = 'ja';
+    // ── 飲 ──
+    { q:{ja:"お茶選ぶなら？", en:"Tea?"},
+      c:[{ja:"緑茶",en:"Green"},{ja:"紅茶",en:"Black"},{ja:"ほうじ茶",en:"Hōjicha"},{ja:"麦茶",en:"Mugicha"}] },
+    { q:{ja:"コーヒーは？", en:"Coffee style?"},
+      c:[{ja:"ブラック",en:"Black"},{ja:"ミルク",en:"With milk"},{ja:"砂糖入り",en:"Sweet"},{ja:"ラテ",en:"Latte"}] },
+    { q:{ja:"朝の一杯は？", en:"Morning drink?"},
+      c:[{ja:"水",en:"Water"},{ja:"コーヒー",en:"Coffee"},{ja:"お茶",en:"Tea"},{ja:"ジュース",en:"Juice"}] },
+    { q:{ja:"のどが渇いたら？", en:"Thirsty? Reach for…"},
+      c:[{ja:"水",en:"Water"},{ja:"お茶",en:"Tea"},{ja:"炭酸",en:"Soda"},{ja:"スポーツ飲料",en:"Sports drink"}] },
+    { q:{ja:"お酒選ぶなら？", en:"Drink?"},
+      c:[{ja:"ビール",en:"Beer"},{ja:"ワイン",en:"Wine"},{ja:"日本酒",en:"Sake"},{ja:"カクテル",en:"Cocktail"}] },
+    { q:{ja:"冬のホットドリンクは？", en:"Winter warm drink?"},
+      c:[{ja:"ココア",en:"Cocoa"},{ja:"お茶",en:"Tea"},{ja:"ホットミルク",en:"Hot milk"},{ja:"ホットレモン",en:"Hot lemon"}] },
+    { q:{ja:"自販機で買うなら？", en:"Vending machine pick?"},
+      c:[{ja:"お茶",en:"Tea"},{ja:"コーヒー",en:"Coffee"},{ja:"ジュース",en:"Juice"},{ja:"水",en:"Water"}] },
+
+    // ── 色 ──
+    { q:{ja:"好きな色は？", en:"Favorite color?"},
+      c:[{ja:"赤",en:"Red"},{ja:"青",en:"Blue"},{ja:"緑",en:"Green"},{ja:"黄色",en:"Yellow"}] },
+    { q:{ja:"服の色は？", en:"Clothing color?"},
+      c:[{ja:"黒",en:"Black"},{ja:"白",en:"White"},{ja:"紺",en:"Navy"},{ja:"グレー",en:"Gray"}] },
+    { q:{ja:"部屋の色は？", en:"Room color?"},
+      c:[{ja:"ベージュ",en:"Beige"},{ja:"白",en:"White"},{ja:"木目",en:"Wood"},{ja:"グレー",en:"Gray"}] },
+    { q:{ja:"見たい空は？", en:"Sky to watch?"},
+      c:[{ja:"青空",en:"Blue sky"},{ja:"夕焼け",en:"Sunset"},{ja:"星空",en:"Starry"},{ja:"雲",en:"Clouds"}] },
+
+    // ── 季 ──
+    { q:{ja:"好きな季節は？", en:"Favorite season?"},
+      c:[{ja:"春",en:"Spring"},{ja:"夏",en:"Summer"},{ja:"秋",en:"Autumn"},{ja:"冬",en:"Winter"}] },
+    { q:{ja:"夏の過ごし方？", en:"Summer plan?"},
+      c:[{ja:"海",en:"Beach"},{ja:"山",en:"Mountain"},{ja:"プール",en:"Pool"},{ja:"涼しい家",en:"Stay cool"}] },
+    { q:{ja:"雨の日は？", en:"Rainy day?"},
+      c:[{ja:"読書",en:"Read"},{ja:"映画",en:"Movie"},{ja:"散歩",en:"Walk"},{ja:"寝る",en:"Sleep"}] },
+    { q:{ja:"雪が降ったら？", en:"Snow day?"},
+      c:[{ja:"雪だるま",en:"Snowman"},{ja:"スキー",en:"Ski"},{ja:"家でぬくぬく",en:"Cozy in"},{ja:"写真撮る",en:"Photos"}] },
+    { q:{ja:"桜の時期は？", en:"Cherry-blossom time?"},
+      c:[{ja:"お花見",en:"Hanami"},{ja:"散歩",en:"Walk"},{ja:"カフェ",en:"Café"},{ja:"家",en:"Stay home"}] },
+
+    // ── 動 ──
+    { q:{ja:"飼うなら？", en:"Pet?"},
+      c:[{ja:"犬",en:"Dog"},{ja:"猫",en:"Cat"},{ja:"鳥",en:"Bird"},{ja:"魚",en:"Fish"}] },
+    { q:{ja:"動物園で見たい？", en:"Zoo favorite?"},
+      c:[{ja:"パンダ",en:"Panda"},{ja:"ライオン",en:"Lion"},{ja:"ゾウ",en:"Elephant"},{ja:"キリン",en:"Giraffe"}] },
+    { q:{ja:"海の生き物は？", en:"Sea creature?"},
+      c:[{ja:"イルカ",en:"Dolphin"},{ja:"クラゲ",en:"Jellyfish"},{ja:"タコ",en:"Octopus"},{ja:"サメ",en:"Shark"}] },
+    { q:{ja:"鳥は？", en:"Favorite bird?"},
+      c:[{ja:"ツバメ",en:"Swallow"},{ja:"フクロウ",en:"Owl"},{ja:"鶴",en:"Crane"},{ja:"カラス",en:"Crow"}] },
+
+    // ── 趣味 ──
+    { q:{ja:"休日の過ごし方？", en:"Weekend?"},
+      c:[{ja:"外出",en:"Go out"},{ja:"家で映画",en:"Home movie"},{ja:"ゲーム",en:"Games"},{ja:"読書",en:"Reading"}] },
+    { q:{ja:"運動するなら？", en:"Exercise?"},
+      c:[{ja:"ジョギング",en:"Jogging"},{ja:"筋トレ",en:"Strength"},{ja:"ヨガ",en:"Yoga"},{ja:"散歩",en:"Walking"}] },
+    { q:{ja:"楽器選ぶなら？", en:"Instrument?"},
+      c:[{ja:"ピアノ",en:"Piano"},{ja:"ギター",en:"Guitar"},{ja:"ドラム",en:"Drums"},{ja:"歌",en:"Singing"}] },
+    { q:{ja:"ゲームジャンルは？", en:"Game genre?"},
+      c:[{ja:"RPG",en:"RPG"},{ja:"アクション",en:"Action"},{ja:"パズル",en:"Puzzle"},{ja:"シミュ",en:"Sim"}] },
+
+    // ── 場所 ──
+    { q:{ja:"旅行なら？", en:"Trip type?"},
+      c:[{ja:"山",en:"Mountains"},{ja:"海",en:"Sea"},{ja:"街",en:"City"},{ja:"田舎",en:"Countryside"}] },
+    { q:{ja:"カフェの席は？", en:"Café seat?"},
+      c:[{ja:"窓際",en:"Window"},{ja:"奥の席",en:"Back"},{ja:"カウンター",en:"Counter"},{ja:"テラス",en:"Terrace"}] },
+    { q:{ja:"散歩したい場所？", en:"Walk where?"},
+      c:[{ja:"公園",en:"Park"},{ja:"川沿い",en:"Riverside"},{ja:"商店街",en:"Shotengai"},{ja:"山道",en:"Trail"}] },
+    { q:{ja:"住むなら？", en:"Live where?"},
+      c:[{ja:"都会",en:"City"},{ja:"郊外",en:"Suburb"},{ja:"海辺",en:"Coast"},{ja:"山の中",en:"Mountains"}] },
+
+    // ── 移動 ──
+    { q:{ja:"移動手段は？", en:"Daily commute?"},
+      c:[{ja:"電車",en:"Train"},{ja:"車",en:"Car"},{ja:"自転車",en:"Bike"},{ja:"徒歩",en:"Walk"}] },
+    { q:{ja:"旅の手段は？", en:"Travel mode?"},
+      c:[{ja:"飛行機",en:"Plane"},{ja:"新幹線",en:"Bullet train"},{ja:"車",en:"Car"},{ja:"船",en:"Ship"}] },
+
+    // ── ファンタジー ──
+    { q:{ja:"魔法使うなら？", en:"Magic element?"},
+      c:[{ja:"火",en:"Fire"},{ja:"水",en:"Water"},{ja:"風",en:"Wind"},{ja:"土",en:"Earth"}] },
+    { q:{ja:"ペットドラゴンは？", en:"Dragon color?"},
+      c:[{ja:"赤",en:"Red"},{ja:"青",en:"Blue"},{ja:"緑",en:"Green"},{ja:"金",en:"Gold"}] },
+    { q:{ja:"異世界で職業は？", en:"Isekai class?"},
+      c:[{ja:"勇者",en:"Hero"},{ja:"魔法使い",en:"Mage"},{ja:"商人",en:"Merchant"},{ja:"農民",en:"Farmer"}] },
+    { q:{ja:"持ちたい超能力？", en:"Superpower?"},
+      c:[{ja:"飛ぶ",en:"Fly"},{ja:"透明化",en:"Invisible"},{ja:"時間停止",en:"Pause time"},{ja:"テレパシー",en:"Telepathy"}] },
+
+    // ── 価値観 ──
+    { q:{ja:"大事なのは？", en:"Most important?"},
+      c:[{ja:"お金",en:"Money"},{ja:"時間",en:"Time"},{ja:"健康",en:"Health"},{ja:"人間関係",en:"Bonds"}] },
+    { q:{ja:"あなたは？", en:"You are…"},
+      c:[{ja:"慎重派",en:"Cautious"},{ja:"大胆派",en:"Bold"},{ja:"マイペース",en:"Own pace"},{ja:"リーダー型",en:"Leader"}] },
+    { q:{ja:"朝型 or 夜型？", en:"Morning or night?"},
+      c:[{ja:"早起き",en:"Early bird"},{ja:"早寝早起き",en:"Steady"},{ja:"夜型",en:"Night owl"},{ja:"不規則",en:"Random"}] },
+
+    // ── 音楽 ──
+    { q:{ja:"音楽ジャンルは？", en:"Music genre?"},
+      c:[{ja:"ポップ",en:"Pop"},{ja:"ロック",en:"Rock"},{ja:"ジャズ",en:"Jazz"},{ja:"クラシック",en:"Classical"}] },
+    { q:{ja:"音楽を聴くタイミング？", en:"When you listen?"},
+      c:[{ja:"通勤中",en:"Commute"},{ja:"作業中",en:"Working"},{ja:"リラックス",en:"Relaxing"},{ja:"寝る前",en:"Before bed"}] },
+
+    // ── スポーツ ──
+    { q:{ja:"見るスポーツは？", en:"Watch sport?"},
+      c:[{ja:"野球",en:"Baseball"},{ja:"サッカー",en:"Soccer"},{ja:"バスケ",en:"Basketball"},{ja:"格闘技",en:"Combat"}] },
+    { q:{ja:"やるなら？", en:"Play sport?"},
+      c:[{ja:"球技",en:"Ball sport"},{ja:"マラソン",en:"Running"},{ja:"水泳",en:"Swim"},{ja:"武道",en:"Martial arts"}] },
+
+    // ── もの ──
+    { q:{ja:"ペンは？", en:"Pen type?"},
+      c:[{ja:"ボールペン",en:"Ballpoint"},{ja:"万年筆",en:"Fountain"},{ja:"シャーペン",en:"Mechanical"},{ja:"鉛筆",en:"Pencil"}] },
+    { q:{ja:"ノートは？", en:"Notebook ruling?"},
+      c:[{ja:"罫線",en:"Lined"},{ja:"方眼",en:"Grid"},{ja:"無地",en:"Blank"},{ja:"ドット",en:"Dot"}] },
+    { q:{ja:"カバンは？", en:"Bag style?"},
+      c:[{ja:"リュック",en:"Backpack"},{ja:"トート",en:"Tote"},{ja:"ショルダー",en:"Shoulder"},{ja:"クラッチ",en:"Clutch"}] },
+    { q:{ja:"時計は？", en:"Watch?"},
+      c:[{ja:"アナログ",en:"Analog"},{ja:"デジタル",en:"Digital"},{ja:"スマート",en:"Smart"},{ja:"持たない",en:"None"}] },
+    { q:{ja:"靴は？", en:"Shoes?"},
+      c:[{ja:"スニーカー",en:"Sneakers"},{ja:"革靴",en:"Leather"},{ja:"ブーツ",en:"Boots"},{ja:"サンダル",en:"Sandals"}] },
+
+    // ── 朝・夜の習慣 ──
+    { q:{ja:"朝起きてまずすること？", en:"First thing in morning?"},
+      c:[{ja:"コーヒー",en:"Coffee"},{ja:"シャワー",en:"Shower"},{ja:"SNSチェック",en:"Phone scroll"},{ja:"二度寝",en:"Back to bed"}] },
+    { q:{ja:"通勤中に聞くのは？", en:"Commute audio?"},
+      c:[{ja:"音楽",en:"Music"},{ja:"ラジオ",en:"Radio"},{ja:"ポッドキャスト",en:"Podcast"},{ja:"無音",en:"Silence"}] },
+    { q:{ja:"寝る前は？", en:"Before bed?"},
+      c:[{ja:"読書",en:"Read"},{ja:"スマホ",en:"Phone"},{ja:"音楽",en:"Music"},{ja:"何もしない",en:"Nothing"}] },
+    { q:{ja:"入浴は？", en:"Bath?"},
+      c:[{ja:"湯船",en:"Soak"},{ja:"シャワー",en:"Shower"},{ja:"朝風呂",en:"Morning"},{ja:"サウナ",en:"Sauna"}] },
+    { q:{ja:"何時に寝る？", en:"Bedtime?"},
+      c:[{ja:"22時前",en:"Before 10"},{ja:"23時頃",en:"Around 11"},{ja:"24時頃",en:"Around 12"},{ja:"深夜",en:"Late night"}] },
+
+    // ── 仕事 ──
+    { q:{ja:"集中する場所は？", en:"Focus where?"},
+      c:[{ja:"自宅",en:"Home"},{ja:"カフェ",en:"Café"},{ja:"図書館",en:"Library"},{ja:"オフィス",en:"Office"}] },
+    { q:{ja:"作業のお供は？", en:"Work companion?"},
+      c:[{ja:"コーヒー",en:"Coffee"},{ja:"お茶",en:"Tea"},{ja:"水",en:"Water"},{ja:"音楽",en:"Music"}] },
+    { q:{ja:"締切前は？", en:"Before deadline?"},
+      c:[{ja:"早めに着手",en:"Early start"},{ja:"ギリギリ",en:"Last minute"},{ja:"計画的",en:"Planned"},{ja:"逃げる",en:"Avoid"}] },
+
+    // ── 文化 ──
+    { q:{ja:"映画ジャンルは？", en:"Film genre?"},
+      c:[{ja:"アクション",en:"Action"},{ja:"恋愛",en:"Romance"},{ja:"ホラー",en:"Horror"},{ja:"コメディ",en:"Comedy"}] },
+    { q:{ja:"本のジャンルは？", en:"Book genre?"},
+      c:[{ja:"小説",en:"Novel"},{ja:"マンガ",en:"Manga"},{ja:"ビジネス",en:"Business"},{ja:"自己啓発",en:"Self-help"}] },
+    { q:{ja:"アニメ見るなら？", en:"Anime?"},
+      c:[{ja:"バトル",en:"Battle"},{ja:"日常",en:"Slice-of-life"},{ja:"恋愛",en:"Romance"},{ja:"SF",en:"Sci-fi"}] },
+
+    // ── 性格 ──
+    { q:{ja:"知らない人と話す？", en:"Talk to strangers?"},
+      c:[{ja:"得意",en:"Easy"},{ja:"普通",en:"Neutral"},{ja:"苦手",en:"Hard"},{ja:"避ける",en:"Avoid"}] },
+    { q:{ja:"計画派？", en:"Planning style?"},
+      c:[{ja:"きっちり",en:"Strict"},{ja:"ざっくり",en:"Loose"},{ja:"その場で",en:"On the spot"},{ja:"なんとかなる",en:"Wing it"}] },
+    { q:{ja:"行動は？", en:"Action style?"},
+      c:[{ja:"すぐ動く",en:"Act fast"},{ja:"考えてから",en:"Think first"},{ja:"様子見",en:"Wait & see"},{ja:"動かない",en:"Stay put"}] },
+    { q:{ja:"集団 vs 個人？", en:"Group vs solo?"},
+      c:[{ja:"チーム",en:"Team"},{ja:"ペア",en:"Pair"},{ja:"一人",en:"Solo"},{ja:"リーダー",en:"Lead"}] },
+
+    // ── お金 ──
+    { q:{ja:"お金の使い方は？", en:"Money usage?"},
+      c:[{ja:"貯金",en:"Save"},{ja:"体験",en:"Experiences"},{ja:"モノ",en:"Things"},{ja:"人にあげる",en:"Give"}] },
+
+    // ── 暇な時間 ──
+    { q:{ja:"暇な時間は？", en:"Free time?"},
+      c:[{ja:"ゴロゴロ",en:"Lounge"},{ja:"片付け",en:"Tidy up"},{ja:"趣味",en:"Hobbies"},{ja:"人と会う",en:"See people"}] },
+    { q:{ja:"連休あったら？", en:"Long weekend?"},
+      c:[{ja:"旅行",en:"Trip"},{ja:"家でゆっくり",en:"Stay in"},{ja:"イベント",en:"Events"},{ja:"仕事する",en:"Work"}] },
+
+    // ── ストレス・気分 ──
+    { q:{ja:"ストレス発散は？", en:"Stress relief?"},
+      c:[{ja:"食べる",en:"Eat"},{ja:"寝る",en:"Sleep"},{ja:"運動",en:"Exercise"},{ja:"話す",en:"Talk"}] },
+    { q:{ja:"プレゼントもらうなら？", en:"Best gift?"},
+      c:[{ja:"花",en:"Flowers"},{ja:"お菓子",en:"Sweets"},{ja:"雑貨",en:"Goods"},{ja:"体験ギフト",en:"Experience"}] },
+
+    // ── 食卓 ──
+    { q:{ja:"鍋なら？", en:"Hot pot?"},
+      c:[{ja:"寄せ鍋",en:"Mixed"},{ja:"すき焼き",en:"Sukiyaki"},{ja:"しゃぶしゃぶ",en:"Shabu"},{ja:"キムチ",en:"Kimchi"}] },
+    { q:{ja:"アイスは？", en:"Ice cream?"},
+      c:[{ja:"バニラ",en:"Vanilla"},{ja:"チョコ",en:"Chocolate"},{ja:"抹茶",en:"Matcha"},{ja:"いちご",en:"Strawberry"}] },
+    { q:{ja:"ケーキは？", en:"Cake?"},
+      c:[{ja:"ショート",en:"Shortcake"},{ja:"チョコ",en:"Chocolate"},{ja:"チーズ",en:"Cheese"},{ja:"モンブラン",en:"Mont Blanc"}] },
+    { q:{ja:"果物選ぶなら？", en:"Fruit pick?"},
+      c:[{ja:"りんご",en:"Apple"},{ja:"バナナ",en:"Banana"},{ja:"いちご",en:"Strawberry"},{ja:"みかん",en:"Mikan"}] },
+    { q:{ja:"スナックは？", en:"Snack?"},
+      c:[{ja:"ポテチ",en:"Chips"},{ja:"チョコ",en:"Chocolate"},{ja:"せんべい",en:"Senbei"},{ja:"ナッツ",en:"Nuts"}] },
+
+    // ── 空間 ──
+    { q:{ja:"部屋の照明は？", en:"Room light?"},
+      c:[{ja:"明るく",en:"Bright"},{ja:"暖色",en:"Warm"},{ja:"間接照明",en:"Indirect"},{ja:"ろうそく",en:"Candle"}] },
+    { q:{ja:"BGMは？", en:"Background sound?"},
+      c:[{ja:"無音",en:"Silence"},{ja:"音楽",en:"Music"},{ja:"自然音",en:"Nature"},{ja:"カフェ音",en:"Café noise"}] },
+    { q:{ja:"植物置くなら？", en:"Plant?"},
+      c:[{ja:"観葉",en:"Foliage"},{ja:"花",en:"Flowers"},{ja:"多肉",en:"Succulent"},{ja:"なし",en:"None"}] },
+
+    // ── 旅 ──
+    { q:{ja:"旅行のスタイルは？", en:"Travel style?"},
+      c:[{ja:"ガッツリ計画",en:"Planned"},{ja:"ふらり",en:"Wander"},{ja:"温泉",en:"Onsen"},{ja:"アクティビティ",en:"Activity"}] },
+    { q:{ja:"行きたい国は？", en:"Country to visit?"},
+      c:[{ja:"フランス",en:"France"},{ja:"イタリア",en:"Italy"},{ja:"アメリカ",en:"USA"},{ja:"タイ",en:"Thailand"}] },
+    { q:{ja:"温泉どこ？", en:"Onsen?"},
+      c:[{ja:"露天",en:"Outdoor"},{ja:"内湯",en:"Indoor"},{ja:"足湯",en:"Foot bath"},{ja:"サウナ付き",en:"With sauna"}] },
+
+    // ── 関係性 ──
+    { q:{ja:"友達の数は？", en:"Friends?"},
+      c:[{ja:"少なく深く",en:"Few deep"},{ja:"広く浅く",en:"Wide net"},{ja:"バランス",en:"Balanced"},{ja:"少ない",en:"Very few"}] },
+    { q:{ja:"連絡手段は？", en:"Contact mode?"},
+      c:[{ja:"電話",en:"Call"},{ja:"メッセージ",en:"Text"},{ja:"音声",en:"Voice msg"},{ja:"ビデオ",en:"Video"}] }
+];
+
+// ════════════════════════════════════════════
+//   i18n
+// ════════════════════════════════════════════
 const I18N = {
-ja: {
-    titleMain: 'キオクイズ',
-    titleSub: 'MEMORY RUNNER',
-    titleTag: '走って覚える、走って答える。',
-    titleDesc: '3つのレーンを駆け抜けながら、ゲートに浮かぶ記号を記憶する。やがて立ちはだかるクイズゲートで、覚えた記号を選び抜け。',
-    titleStart: 'はじめる',
-    hudScore: 'SCORE',
-    hudCombo: 'COMBO',
-    hint: '← 左タップ／右タップ →',
-    tutStep1Title: '走って、覚える',
-    tutStep1Text: '青いゲートを通り抜けると、その記号が記憶になる。\n走り続けるうちに、頭の中にいくつもの記号が積まれていく。',
-    tutStep1Btn: '次へ',
-    tutStep2Title: 'クイズゲートで答える',
-    tutStep2Text: 'やがてクイズゲートが現れる。3つのドアにはそれぞれ違う記号。\n上に出る問いに合うドアを選んで通り抜けよう。\n間違えるとライフが1つ減る。',
-    tutStep2Btn: 'はじめる',
-    qFirst: '最初に見たのは？',
-    qLast: '直前に見たのは？',
-    qSaw: '見た記号は？',
-    qNotSaw: '見ていない記号は？',
-    qNth: (n) => `${n}番目に見たのは？`,
-    correct: '正解！',
-    wrong: '不正解…',
-    resultTitle: 'ゲームオーバー',
-    resultSubtitle: '記憶の道は、ここまで。',
-    statScore: 'スコア',
-    statCombo: '最大コンボ',
-    statDistance: '走った距離',
-    statLevel: 'レベル',
-    insight: '記憶は、通り抜けた数より、選んだ瞬間の確かさで磨かれる。すぐ忘れたって、また走ればいい。',
-    resultRestart: 'もう一度',
-    levelUp: 'LEVEL UP',
-},
-en: {
-    titleMain: 'KIOKUIZ',
-    titleSub: 'MEMORY RUNNER',
-    titleTag: 'Run to remember. Run to answer.',
-    titleDesc: 'Sprint down three lanes and memorize the symbols floating in each gate. Eventually a quiz gate blocks the path — pick the door that matches the question.',
-    titleStart: 'BEGIN',
-    hudScore: 'SCORE',
-    hudCombo: 'COMBO',
-    hint: '← TAP LEFT / TAP RIGHT →',
-    tutStep1Title: 'Run and remember',
-    tutStep1Text: 'Pass through a blue gate and its symbol becomes a memory.\nThe further you run, the more symbols pile up in your head.',
-    tutStep1Btn: 'Next',
-    tutStep2Title: 'The quiz gate',
-    tutStep2Text: 'Soon a quiz gate appears. Three doors, three different symbols.\nMatch the question above and pick the right door.\nA wrong door costs a life.',
-    tutStep2Btn: 'Begin',
-    qFirst: 'Which did you see FIRST?',
-    qLast: 'Which did you see LAST?',
-    qSaw: 'Which one DID you see?',
-    qNotSaw: 'Which did you NOT see?',
-    qNth: (n) => `Which was #${n}?`,
-    correct: 'CORRECT!',
-    wrong: 'MISS…',
-    resultTitle: 'RUN ENDED',
-    resultSubtitle: 'The road of memory ends here.',
-    statScore: 'Score',
-    statCombo: 'Best combo',
-    statDistance: 'Distance',
-    statLevel: 'Level',
-    insight: 'Memory is sharpened not by what you pass through, but by the certainty of the moment you choose. Forget — and run again.',
-    resultRestart: 'Replay',
-    levelUp: 'LEVEL UP',
-}
+    ja: {
+        appTitle: "キオクイズ",
+        heroTitle: "キオクイズ",
+        heroTag: "あなたの「好み」が、いつしか「問題」になる",
+        rulesTitle: "ルール",
+        rule1Html: "<strong>キオクフェーズ</strong>では、4択から自分の好みを答える。",
+        rule2Html: "<strong>クイズフェーズ</strong>では、過去の自分の答えを思い出す。",
+        rule3Html: "過去の自分を間違えたら<strong>終了</strong>。",
+        rule4Html: "続けるほど、覚える「好み」が積み重なっていく。",
+        startBtn: "スタート",
+        bestBlank: "ベストスコア —",
+        bestFmt: (n)=>"ベストスコア　★ "+n,
+        statBrainLabel: "記憶",
+        statScoreLabel: "スコア",
+        statBestLabel: "ベスト",
+        phaseKioku: "記　キオク",
+        phaseQuiz: "問　クイズ",
+        hintKioku: "あなたの好みを選んでください",
+        hintQuiz: "過去のあなたは何を選んだ？",
+        burdenLight: "",
+        burdenMedium: "記憶が増えてきた…",
+        burdenHeavy: "そろそろ思い出すのが大変…",
+        burdenCrisis: "もう自分が分からない！",
+        overTitle: "記憶ロスト",
+        overSub: "過去の自分とすれ違った",
+        overResultLabel: "問題と、あなたの答え",
+        overYouLabel: "今の答え",
+        overPastLabel: "過去の答え",
+        overStatScoreLabel: "スコア",
+        overStatBestLabel: "ベスト",
+        bestBadge: "★ ベスト更新！",
+        againBtn: "もう一度",
+        homeBtn: "ホーム",
+    },
+    en: {
+        appTitle: "Kiokuiz",
+        heroTitle: "Kiokuiz",
+        heroTag: "Your taste — soon, your test.",
+        rulesTitle: "Rules",
+        rule1Html: "<strong>Memorize phase:</strong> pick the option you actually like.",
+        rule2Html: "<strong>Quiz phase:</strong> recall what your past self chose.",
+        rule3Html: "Mismatch your past self — <strong>game over</strong>.",
+        rule4Html: "The longer you play, the more 'preferences' you must hold.",
+        startBtn: "START",
+        bestBlank: "Best score —",
+        bestFmt: (n)=>"Best score　★ "+n,
+        statBrainLabel: "MEMORY",
+        statScoreLabel: "SCORE",
+        statBestLabel: "BEST",
+        phaseKioku: "MEMORIZE",
+        phaseQuiz: "QUIZ",
+        hintKioku: "Pick what you actually prefer",
+        hintQuiz: "What did past-you pick?",
+        burdenLight: "",
+        burdenMedium: "Memories are piling up…",
+        burdenHeavy: "Getting hard to recall…",
+        burdenCrisis: "Who am I anymore?!",
+        overTitle: "MEMORY LOST",
+        overSub: "Past-you and now-you disagreed",
+        overResultLabel: "The question, and your answers",
+        overYouLabel: "now",
+        overPastLabel: "past",
+        overStatScoreLabel: "SCORE",
+        overStatBestLabel: "BEST",
+        bestBadge: "★ NEW BEST",
+        againBtn: "Try again",
+        homeBtn: "Home",
+    }
 };
 
-function t(key, ...args) {
-    const v = (I18N[LANG] || I18N.ja)[key];
-    if (typeof v === 'function') return v(...args);
-    return v || key;
-}
+// ════════════════════════════════════════════
+//   State
+// ════════════════════════════════════════════
+let lang = 'ja';
+let memoryBank = [];     // [{qIdx, choiceIdx}] — choiceIdx is canonical (0..3 into q.c)
+let usedKiokuQs = new Set(); // qIdx already used in kioku
+let score = 0;
+let best = 0;
+let phase = 'kioku';     // 'kioku' | 'quiz'
+let currentQIdx = null;
+let currentMemoryIdx = null; // index in memoryBank when in quiz phase
+let displayOrder = [0,1,2,3]; // shuffled each round: displayPosition → canonical idx
+let acceptInput = true;
 
-function toggleLang() {
-    LANG = LANG === 'ja' ? 'en' : 'ja';
-    document.getElementById('lang-btn').textContent = LANG === 'ja' ? 'EN' : 'JA';
-    applyI18n();
-}
-
-function applyI18n() {
-    document.querySelectorAll('[data-i]').forEach(el => {
-        const key = el.getAttribute('data-i');
-        const v = I18N[LANG][key];
-        if (typeof v === 'string') el.textContent = v;
-    });
-}
-
-// ══════════════════════════════════
-//  CONSTANTS
-// ══════════════════════════════════
-
-const SYMBOLS = ['🐱','🐶','🦊','🐻','🐼','🐸','🐢','🐧','🦉','🌙','⭐','☀️','⚡','❄️','🔥','🍎','🍇','🍒','🌸','🌻','🍀','🎵','🎯','⚓'];
-const LANE_COUNT = 3;
-const GATE_GAP = 260;
-
-// ══════════════════════════════════
-//  STATE
-// ══════════════════════════════════
-
-let canvas, ctx, animId;
-let state = null;
-
-function initState() {
-    return {
-        score: 0,
-        lives: 3,
-        combo: 0,
-        bestCombo: 0,
-        distance: 0,
-        speed: 230,
-        level: 1,
-        gates: [],
-        memoryQueue: [],
-        queueMaxSize: 5,
-        memoriesUntilQuiz: 3,
-        memoryCounter: 0,
-        quizzesSolved: 0,
-        spawnY: -160,
-        player: { lane: 1, targetLane: 1, x: 0, y: 0, bob: 0 },
-        flash: null,
-        toasts: [],
-        gameOver: false,
-        levelUpTimer: 0,
-    };
-}
-
-// ══════════════════════════════════
-//  CANVAS
-// ══════════════════════════════════
-
-function resizeCanvas() {
-    if (!canvas) return;
-    const dpr = Math.max(1, window.devicePixelRatio || 1);
-    canvas.width = canvas.clientWidth * dpr;
-    canvas.height = canvas.clientHeight * dpr;
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    if (state) state.player.x = laneX(state.player.targetLane);
-}
-
-function laneX(lane) {
-    const tb = trackBounds();
-    return tb.left + tb.laneW * (lane + 0.5);
-}
-
-function trackBounds() {
-    const w = canvas.clientWidth;
-    const trackW = Math.min(w * 0.86, 540);
-    const left = (w - trackW) / 2;
-    return { left, right: left + trackW, width: trackW, laneW: trackW / LANE_COUNT };
-}
-
-function playerY() {
-    return canvas.clientHeight - 80;
-}
-
-// ══════════════════════════════════
-//  GATE SPAWNING
-// ══════════════════════════════════
-
-function spawnMemoryGate() {
-    let sym;
-    let tries = 0;
-    do {
-        sym = SYMBOLS[Math.floor(Math.random() * SYMBOLS.length)];
-        tries++;
-    } while (state.memoryQueue.includes(sym) && tries < 10);
-    state.gates.push({
-        type: 'memory',
-        y: state.spawnY,
-        symbol: sym,
-        passed: false,
-    });
-}
-
-function shuffle(arr) {
-    for (let i = arr.length - 1; i > 0; i--) {
+function shuffle4() {
+    const a = [0,1,2,3];
+    for (let i = 3; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
-        [arr[i], arr[j]] = [arr[j], arr[i]];
+        [a[i], a[j]] = [a[j], a[i]];
     }
-    return arr;
+    return a;
 }
 
-function spawnQuizGate() {
-    // Options & correct answer are generated at reveal time so they
-    // match the player's actual memory window when the gate appears.
-    state.gates.push({
-        type: 'quiz',
-        y: state.spawnY,
-        qType: null,
-        qData: null,
-        options: null,
-        correctIndex: -1,
-        passed: false,
-        revealed: false,
-    });
+const $ = id => document.getElementById(id);
+
+function loadBest() {
+    try {
+        const v = parseInt(localStorage.getItem('kiokuiz-best') || '0', 10);
+        return isNaN(v) ? 0 : v;
+    } catch (e) { return 0; }
+}
+function saveBest(n) {
+    try { localStorage.setItem('kiokuiz-best', String(n)); } catch (e) {}
+}
+function loadLang() {
+    try {
+        const stored = localStorage.getItem('kiokuiz-lang');
+        if (stored === 'ja' || stored === 'en') return stored;
+    } catch (e) {}
+    const nav = (navigator.language || 'ja').toLowerCase();
+    return nav.startsWith('ja') ? 'ja' : 'en';
+}
+function saveLang(l) { try { localStorage.setItem('kiokuiz-lang', l); } catch (e) {} }
+
+function applyLang(newLang) {
+    lang = newLang;
+    saveLang(lang);
+    const t = I18N[lang];
+    document.documentElement.lang = lang;
+
+    $('appTitle').textContent = t.appTitle;
+    $('heroTitle').textContent = t.heroTitle;
+    $('heroTag').textContent = t.heroTag;
+    $('rulesTitle').textContent = t.rulesTitle;
+    $('rule1').innerHTML = t.rule1Html;
+    $('rule2').innerHTML = t.rule2Html;
+    $('rule3').innerHTML = t.rule3Html;
+    $('rule4').innerHTML = t.rule4Html;
+    $('startBtn').textContent = t.startBtn;
+    $('againBtn').textContent = t.againBtn;
+    $('overHomeBtn').textContent = t.homeBtn;
+    $('statBrainLabel').textContent = t.statBrainLabel;
+    $('statScoreLabel').textContent = t.statScoreLabel;
+    $('statBestLabel').textContent = t.statBestLabel;
+    $('overStatScoreLabel').textContent = t.overStatScoreLabel;
+    $('overStatBestLabel').textContent = t.overStatBestLabel;
+    $('bestBadge').textContent = t.bestBadge;
+    $('overTitle').textContent = t.overTitle;
+    $('overSub').textContent = t.overSub;
+
+    $('langBtn').textContent = lang === 'ja' ? 'EN' : 'JP';
+    updateBestLine();
+    if ($('gameScreen').classList.contains('active')) renderQuestion();
 }
 
-function generateQuiz(gate) {
-    const queue = state.memoryQueue.slice();
-    if (queue.length < 3) {
-        // fallback: not enough memory yet, make an easy "saw" quiz
-        const correct = queue[queue.length - 1] || SYMBOLS[0];
-        const notSeen = SYMBOLS.filter(s => !queue.includes(s));
-        shuffle(notSeen);
-        gate.qType = 'last';
-        gate.qData = {};
-        gate.options = shuffle([correct, notSeen[0], notSeen[1]]);
-        gate.correctIndex = gate.options.indexOf(correct);
-        return;
-    }
-
-    const types = ['first', 'last'];
-    if (state.level >= 2) types.push('saw', 'notSaw');
-    if (state.level >= 3 && queue.length >= 4) types.push('nth');
-    const qType = types[Math.floor(Math.random() * types.length)];
-
-    let correct, options, qData = {};
-
-    if (qType === 'first') {
-        correct = queue[0];
-        options = pickThree(correct, queue);
-    } else if (qType === 'last') {
-        correct = queue[queue.length - 1];
-        options = pickThree(correct, queue);
-    } else if (qType === 'nth') {
-        const n = 2 + Math.floor(Math.random() * Math.max(1, queue.length - 2));
-        correct = queue[n - 1];
-        options = pickThree(correct, queue);
-        qData.n = n;
-    } else if (qType === 'saw') {
-        correct = queue[Math.floor(Math.random() * queue.length)];
-        const notSeen = SYMBOLS.filter(s => !queue.includes(s));
-        shuffle(notSeen);
-        options = shuffle([correct, notSeen[0], notSeen[1]]);
-    } else { // notSaw
-        const notSeen = SYMBOLS.filter(s => !queue.includes(s));
-        shuffle(notSeen);
-        correct = notSeen[0];
-        const seen = queue.filter((v, i, a) => a.indexOf(v) === i);
-        shuffle(seen);
-        let opt2 = seen[0], opt3 = seen[1];
-        if (!opt3 || opt2 === opt3) opt3 = notSeen[1] || SYMBOLS.find(s => s !== correct && s !== opt2);
-        options = shuffle([correct, opt2, opt3]);
-    }
-
-    gate.qType = qType;
-    gate.qData = qData;
-    gate.options = options;
-    gate.correctIndex = options.indexOf(correct);
+function updateBestLine() {
+    const t = I18N[lang];
+    $('bestScoreLine').textContent = best > 0 ? t.bestFmt(best) : t.bestBlank;
 }
 
-function pickThree(correct, queue) {
-    const opts = [correct];
-    const others = queue.filter(s => s !== correct);
-    shuffle(others);
-    while (opts.length < 3 && others.length) opts.push(others.shift());
-    while (opts.length < 3) {
-        const r = SYMBOLS[Math.floor(Math.random() * SYMBOLS.length)];
-        if (!opts.includes(r)) opts.push(r);
-    }
-    return shuffle(opts);
-}
-
-function questionText(gate) {
-    if (gate.qType === 'first') return t('qFirst');
-    if (gate.qType === 'last') return t('qLast');
-    if (gate.qType === 'saw') return t('qSaw');
-    if (gate.qType === 'notSaw') return t('qNotSaw');
-    if (gate.qType === 'nth') return t('qNth', gate.qData.n);
-    return '?';
-}
-
-// ══════════════════════════════════
-//  GATE PASS / OUTCOMES
-// ══════════════════════════════════
-
-function onGatePass(gate) {
-    if (gate.type === 'memory') {
-        state.memoryQueue.push(gate.symbol);
-        if (state.memoryQueue.length > state.queueMaxSize) state.memoryQueue.shift();
-        addToast('+' + gate.symbol, '#80c0ff');
-    } else {
-        const lane = state.player.lane;
-        const correct = lane === gate.correctIndex;
-        if (correct) {
-            state.score++;
-            state.combo++;
-            state.bestCombo = Math.max(state.bestCombo, state.combo);
-            state.flash = { color: '#80f090', t: 0.45 };
-            addToast(t('correct'), '#80f090');
-            state.quizzesSolved++;
-            if (state.quizzesSolved % 3 === 0) {
-                state.level++;
-                state.speed = Math.min(420, state.speed + 28);
-                state.queueMaxSize = Math.min(7, state.queueMaxSize + 1);
-                state.memoriesUntilQuiz = Math.min(6, state.memoriesUntilQuiz + 1);
-                state.levelUpTimer = 1.4;
-            }
-        } else {
-            state.lives--;
-            state.combo = 0;
-            state.flash = { color: '#ff5070', t: 0.55 };
-            addToast(t('wrong') + ' ' + gate.options[gate.correctIndex], '#ff5070');
-            if (state.lives <= 0) {
-                setTimeout(() => endGame(), 700);
-            }
-        }
-    }
-    updateHUD();
-}
-
-function addToast(text, color) {
-    state.toasts.push({ text, color, y: 0, life: 1.6, vy: -28 });
-}
-
-// ══════════════════════════════════
-//  INPUT
-// ══════════════════════════════════
-
-function moveLane(dir) {
-    if (!state || state.gameOver) return;
-    state.player.targetLane = Math.max(0, Math.min(LANE_COUNT - 1, state.player.targetLane + dir));
-}
-
-function setLane(lane) {
-    if (!state || state.gameOver) return;
-    state.player.targetLane = Math.max(0, Math.min(LANE_COUNT - 1, lane));
-}
-
-function setupInput() {
-    if (setupInput._done) return;
-    document.addEventListener('keydown', (e) => {
-        if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') moveLane(-1);
-        else if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') moveLane(1);
-    });
-
-    let downX = null;
-    canvas.addEventListener('pointerdown', (e) => { downX = e.clientX; });
-    canvas.addEventListener('pointerup', (e) => {
-        if (downX === null) return;
-        const dx = e.clientX - downX;
-        if (Math.abs(dx) > 30) {
-            moveLane(dx > 0 ? 1 : -1);
-        } else {
-            const rect = canvas.getBoundingClientRect();
-            const px = e.clientX - rect.left;
-            const third = rect.width / 3;
-            if (px < third) setLane(0);
-            else if (px > 2 * third) setLane(2);
-            else setLane(1);
-        }
-        downX = null;
-    });
-    canvas.addEventListener('pointercancel', () => { downX = null; });
-    setupInput._done = true;
-}
-
-// ══════════════════════════════════
-//  GAME LOOP
-// ══════════════════════════════════
-
-let lastTime = 0;
-function loop(time) {
-    if (!state || state.gameOver) return;
-    const dt = Math.min(0.05, lastTime === 0 ? 0.016 : (time - lastTime) / 1000);
-    lastTime = time;
-    update(dt);
-    render();
-    animId = requestAnimationFrame(loop);
-}
-
-function update(dt) {
-    state.distance += state.speed * dt;
-
-    state.gates.forEach(g => { g.y += state.speed * dt; });
-
-    // Ensure 4+ gates ahead of player
-    while (state.gates.filter(g => !g.passed).length < 4) {
-        const topMost = state.gates.length
-            ? Math.min(...state.gates.map(g => g.y))
-            : 100;
-        state.spawnY = topMost - GATE_GAP;
-        const queueReady = state.memoryQueue.length >= 3;
-        const isQuiz = queueReady && state.memoryCounter >= state.memoriesUntilQuiz;
-        if (isQuiz) {
-            spawnQuizGate();
-            state.memoryCounter = 0;
-        } else {
-            spawnMemoryGate();
-            state.memoryCounter++;
-        }
-    }
-
-    // Lane animation
-    const tx = laneX(state.player.targetLane);
-    state.player.x += (tx - state.player.x) * Math.min(1, dt * 14);
-    state.player.lane = state.player.targetLane;
-    state.player.bob += dt * 11;
-
-    // Detect gate pass
-    const py = playerY();
-    state.gates.forEach(g => {
-        if (g.passed) return;
-        if (g.y >= py + 6) {
-            g.passed = true;
-            onGatePass(g);
-        } else if (g.type === 'quiz' && !g.revealed && g.y > py - 380) {
-            generateQuiz(g);
-            g.revealed = true;
-        }
-    });
-
-    state.gates = state.gates.filter(g => g.y < canvas.clientHeight + 200);
-
-    if (state.flash) {
-        state.flash.t -= dt;
-        if (state.flash.t <= 0) state.flash = null;
-    }
-    state.toasts.forEach(tt => { tt.life -= dt; tt.y += tt.vy * dt; });
-    state.toasts = state.toasts.filter(tt => tt.life > 0);
-    if (state.levelUpTimer > 0) state.levelUpTimer -= dt;
-}
-
-// ══════════════════════════════════
-//  RENDER
-// ══════════════════════════════════
-
-function render() {
-    const w = canvas.clientWidth, h = canvas.clientHeight;
-    const tb = trackBounds();
-
-    // Background
-    const grd = ctx.createLinearGradient(0, 0, 0, h);
-    grd.addColorStop(0, '#1a0a3a');
-    grd.addColorStop(1, '#0a0420');
-    ctx.fillStyle = grd;
-    ctx.fillRect(0, 0, w, h);
-
-    drawStars();
-
-    // Track
-    ctx.fillStyle = 'rgba(40,20,80,0.55)';
-    ctx.fillRect(tb.left, 0, tb.width, h);
-    ctx.fillStyle = '#5a3090';
-    ctx.fillRect(tb.left - 2, 0, 2, h);
-    ctx.fillRect(tb.right, 0, 2, h);
-
-    // Lane separator dashes (scrolling downward)
-    ctx.strokeStyle = 'rgba(180,140,255,0.25)';
-    ctx.lineWidth = 2;
-    ctx.setLineDash([14, 14]);
-    const offset = (state.distance % 28);
-    for (let i = 1; i < LANE_COUNT; i++) {
-        const x = tb.left + tb.laneW * i;
-        ctx.beginPath();
-        ctx.moveTo(x, -28 + offset);
-        ctx.lineTo(x, h);
-        ctx.stroke();
-    }
-    ctx.setLineDash([]);
-
-    // Highlight current lane (subtle)
-    const curX = laneX(state.player.targetLane);
-    const lg = ctx.createLinearGradient(0, 0, 0, h);
-    lg.addColorStop(0, 'rgba(180,140,255,0)');
-    lg.addColorStop(1, 'rgba(180,140,255,0.12)');
-    ctx.fillStyle = lg;
-    ctx.fillRect(curX - tb.laneW / 2, 0, tb.laneW, h);
-
-    state.gates.forEach(g => drawGate(g));
-    drawPlayer();
-
-    // Toasts
-    state.toasts.forEach(tt => {
-        ctx.globalAlpha = Math.min(1, tt.life);
-        ctx.fillStyle = tt.color;
-        ctx.font = 'bold 18px sans-serif';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(tt.text, w / 2, h * 0.42 + tt.y);
-    });
-    ctx.globalAlpha = 1;
-
-    if (state.flash) {
-        ctx.fillStyle = state.flash.color;
-        ctx.globalAlpha = Math.min(0.45, state.flash.t * 0.9);
-        ctx.fillRect(0, 0, w, h);
-        ctx.globalAlpha = 1;
-    }
-
-    if (state.levelUpTimer > 0) {
-        ctx.globalAlpha = Math.min(1, state.levelUpTimer * 1.5);
-        ctx.fillStyle = '#ffd060';
-        ctx.font = 'bold 28px sans-serif';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(t('levelUp') + ' ' + state.level, w / 2, h * 0.22);
-        ctx.globalAlpha = 1;
-    }
-}
-
-const _stars = [];
-function drawStars() {
-    if (_stars.length === 0) {
-        for (let i = 0; i < 50; i++) {
-            _stars.push({
-                x: Math.random(),
-                y: Math.random(),
-                r: Math.random() * 1.2 + 0.3,
-                tw: Math.random() * Math.PI * 2,
-            });
-        }
-    }
-    const w = canvas.clientWidth, h = canvas.clientHeight;
-    const tt = performance.now() / 1000;
-    _stars.forEach(s => {
-        const sx = s.x * w;
-        const sy = ((s.y * h + state.distance * 0.15) % h);
-        const tw = 0.5 + 0.5 * Math.sin(tt * 1.2 + s.tw);
-        ctx.fillStyle = `rgba(200,170,255,${0.2 + tw * 0.3})`;
-        ctx.beginPath();
-        ctx.arc(sx, sy, s.r, 0, Math.PI * 2);
-        ctx.fill();
-    });
-}
-
-function drawGate(g) {
-    const tb = trackBounds();
-    const y = g.y;
-    if (y < -120 || y > canvas.clientHeight + 80) return;
-
-    if (g.type === 'memory') {
-        const cx = tb.left + tb.width / 2;
-        // Posts
-        ctx.fillStyle = '#4a90e0';
-        ctx.fillRect(tb.left - 4, y - 12, 8, 26);
-        ctx.fillRect(tb.right - 4, y - 12, 8, 26);
-        // Top beam
-        ctx.fillStyle = '#5aa0f0';
-        ctx.fillRect(tb.left - 4, y - 16, tb.width + 8, 6);
-        // Glow band
-        ctx.fillStyle = 'rgba(120,180,255,0.18)';
-        ctx.fillRect(tb.left, y - 10, tb.width, 22);
-        // Symbol above
-        ctx.font = '38px sans-serif';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.shadowColor = '#80c0ff';
-        ctx.shadowBlur = 14;
-        ctx.fillStyle = '#fff';
-        ctx.fillText(g.symbol, cx, y - 38);
-        ctx.shadowBlur = 0;
-    } else {
-        const cx = tb.left + tb.width / 2;
-        if (g.revealed && g.options) {
-            const bannerY = y - 110;
-            const bw = Math.min(tb.width + 30, canvas.clientWidth - 16);
-            ctx.fillStyle = 'rgba(255,176,96,0.95)';
-            ctx.beginPath();
-            ctx.roundRect(cx - bw / 2, bannerY - 22, bw, 36, 10);
-            ctx.fill();
-            ctx.fillStyle = '#1a0a3a';
-            ctx.font = 'bold 15px sans-serif';
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.fillText(questionText(g), cx, bannerY - 4);
-        }
-        // Doors (drawn dim before revealed)
-        for (let i = 0; i < LANE_COUNT; i++) {
-            const dx = laneX(i);
-            const dw = tb.laneW * 0.78;
-            const dh = 64;
-            const frameColor = g.revealed ? '#ffb060' : '#5a4a30';
-            ctx.fillStyle = frameColor;
-            ctx.fillRect(dx - dw / 2 - 3, y - dh + 8, dw + 6, 6);
-            ctx.fillRect(dx - dw / 2 - 3, y - dh + 8, 5, dh - 8);
-            ctx.fillRect(dx + dw / 2 - 2, y - dh + 8, 5, dh - 8);
-            ctx.fillStyle = g.revealed ? 'rgba(255,176,96,0.13)' : 'rgba(120,90,40,0.1)';
-            ctx.fillRect(dx - dw / 2, y - dh + 14, dw, dh - 14);
-            if (g.revealed && g.options) {
-                ctx.font = '32px sans-serif';
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-                ctx.shadowColor = '#ffb060';
-                ctx.shadowBlur = 10;
-                ctx.fillStyle = '#fff';
-                ctx.fillText(g.options[i], dx, y - dh / 2 + 4);
-                ctx.shadowBlur = 0;
-            } else {
-                ctx.font = '24px sans-serif';
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-                ctx.fillStyle = 'rgba(255,176,96,0.4)';
-                ctx.fillText('?', dx, y - dh / 2 + 4);
-            }
-        }
-    }
-}
-
-function drawPlayer() {
-    const p = state.player;
-    p.y = playerY();
-    const bobY = Math.abs(Math.sin(p.bob)) * 4;
-    const lean = Math.sin(p.bob * 2) * 2;
-
-    // Shadow
-    ctx.fillStyle = 'rgba(0,0,0,0.4)';
-    ctx.beginPath();
-    ctx.ellipse(p.x, p.y + 18, 14, 4, 0, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Body
-    ctx.fillStyle = '#d8b8ff';
-    ctx.beginPath();
-    ctx.roundRect(p.x - 9 + lean, p.y - 28 - bobY, 18, 28, 5);
-    ctx.fill();
-
-    // Head
-    ctx.fillStyle = '#f4e4ff';
-    ctx.beginPath();
-    ctx.arc(p.x + lean, p.y - 36 - bobY, 9, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Eyes
-    ctx.fillStyle = '#1a0a3a';
-    ctx.fillRect(p.x - 3 + lean, p.y - 37 - bobY, 2, 3);
-    ctx.fillRect(p.x + 1 + lean, p.y - 37 - bobY, 2, 3);
-
-    // Legs alternating
-    const legPhase = Math.sin(p.bob * 1.5);
-    ctx.fillStyle = '#a878d8';
-    ctx.fillRect(p.x - 6, p.y - 4 - Math.max(0, legPhase) * 6, 4, 12);
-    ctx.fillRect(p.x + 2, p.y - 4 - Math.max(0, -legPhase) * 6, 4, 12);
-
-    // Speed lines occasionally
-    if (Math.random() < 0.35) {
-        ctx.strokeStyle = 'rgba(216,184,255,0.45)';
-        ctx.lineWidth = 1;
-        for (let i = 0; i < 2; i++) {
-            const ly = p.y - 18 - Math.random() * 30;
-            const lx = p.x - 14 + Math.random() * 28;
-            ctx.beginPath();
-            ctx.moveTo(lx, ly);
-            ctx.lineTo(lx, ly + 8 + Math.random() * 6);
-            ctx.stroke();
-        }
-    }
-}
-
-// roundRect polyfill (for older Safari)
-if (!CanvasRenderingContext2D.prototype.roundRect) {
-    CanvasRenderingContext2D.prototype.roundRect = function(x, y, w, h, r) {
-        if (typeof r === 'number') r = [r, r, r, r];
-        else if (Array.isArray(r) && r.length === 1) r = [r[0], r[0], r[0], r[0]];
-        this.beginPath();
-        this.moveTo(x + r[0], y);
-        this.lineTo(x + w - r[1], y);
-        this.quadraticCurveTo(x + w, y, x + w, y + r[1]);
-        this.lineTo(x + w, y + h - r[2]);
-        this.quadraticCurveTo(x + w, y + h, x + w - r[2], y + h);
-        this.lineTo(x + r[3], y + h);
-        this.quadraticCurveTo(x, y + h, x, y + h - r[3]);
-        this.lineTo(x, y + r[0]);
-        this.quadraticCurveTo(x, y, x + r[0], y);
-        this.closePath();
-        return this;
-    };
-}
-
-// ══════════════════════════════════
-//  HUD / LIFECYCLE
-// ══════════════════════════════════
-
-function updateHUD() {
-    document.getElementById('hud-lives').textContent = '×' + state.lives;
-    document.getElementById('hud-score').textContent = state.score;
-    document.getElementById('hud-combo').textContent = state.combo;
-    document.getElementById('hud-level').textContent = 'Lv.' + state.level;
+// ════════════════════════════════════════════
+//   Game
+// ════════════════════════════════════════════
+function showScreen(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    $(id).classList.add('active');
+    window.scrollTo({ top: 0, behavior: 'instant' });
 }
 
 function startGame() {
-    document.getElementById('title-screen').classList.add('hidden');
-    document.getElementById('game-container').classList.add('active');
-    document.getElementById('result-screen').classList.remove('active');
-
-    canvas = document.getElementById('game-canvas');
-    ctx = canvas.getContext('2d');
-    resizeCanvas();
-
-    state = initState();
-    state.player.x = laneX(1);
-    state.player.y = playerY();
-
-    setupInput();
-
-    showTutorial(0);
-
-    updateHUD();
-    lastTime = 0;
-    cancelAnimationFrame(animId);
-    animId = requestAnimationFrame(loop);
+    memoryBank = [];
+    usedKiokuQs = new Set();
+    score = 0;
+    phase = 'kioku';
+    acceptInput = true;
+    showScreen('gameScreen');
+    nextRound();
 }
 
-function showTutorial(step) {
-    const tut = document.getElementById('tutorial');
-    const c = document.getElementById('tut-content');
-    tut.classList.remove('hidden');
-    if (step === 0) {
-        c.innerHTML = `
-            <div class="tut-icons">🐱 ⭐ 🍎</div>
-            <h3>${t('tutStep1Title')}</h3>
-            <p>${t('tutStep1Text')}</p>
-            <button class="tut-next" onclick="showTutorial(1)">${t('tutStep1Btn')}</button>
-        `;
+function pickKiokuQuestion() {
+    // pick a question that hasn't been used yet
+    const available = [];
+    for (let i = 0; i < QUESTIONS.length; i++) {
+        if (!usedKiokuQs.has(i)) available.push(i);
+    }
+    if (available.length === 0) return null;
+    return available[Math.floor(Math.random() * available.length)];
+}
+
+function decidePhase() {
+    // round count based on score+1
+    const round = score + 1;
+    // forced kioku for first 2 rounds
+    if (round <= 2) return 'kioku';
+    // can't quiz with empty memory
+    if (memoryBank.length === 0) return 'kioku';
+    // can't kioku if no questions left
+    if (usedKiokuQs.size >= QUESTIONS.length) return 'quiz';
+    // 50/50 random thereafter — slight quiz bias as memory grows for difficulty
+    const quizProb = Math.min(0.65, 0.45 + memoryBank.length * 0.01);
+    return Math.random() < quizProb ? 'quiz' : 'kioku';
+}
+
+function nextRound() {
+    phase = decidePhase();
+    if (phase === 'kioku') {
+        currentQIdx = pickKiokuQuestion();
+        currentMemoryIdx = null;
     } else {
-        c.innerHTML = `
-            <div class="tut-icons">🚪 🚪 🚪</div>
-            <h3>${t('tutStep2Title')}</h3>
-            <p>${t('tutStep2Text')}</p>
-            <button class="tut-next" onclick="closeTutorial()">${t('tutStep2Btn')}</button>
-        `;
+        // pick random memory
+        currentMemoryIdx = Math.floor(Math.random() * memoryBank.length);
+        currentQIdx = memoryBank[currentMemoryIdx].qIdx;
+    }
+    displayOrder = shuffle4();
+    renderQuestion();
+}
+
+function renderQuestion() {
+    const t = I18N[lang];
+    const card = $('phaseCard');
+    card.classList.toggle('kioku', phase === 'kioku');
+    card.classList.toggle('quiz',  phase === 'quiz');
+    $('phaseBadge').textContent = phase === 'kioku' ? t.phaseKioku : t.phaseQuiz;
+    $('phaseHint').textContent = phase === 'kioku' ? t.hintKioku : t.hintQuiz;
+
+    const q = QUESTIONS[currentQIdx];
+    $('questionText').textContent = q.q[lang];
+
+    const choicesEl = $('choices');
+    choicesEl.innerHTML = '';
+    displayOrder.forEach((canonicalIdx, displayPos) => {
+        const choice = q.c[canonicalIdx];
+        const btn = document.createElement('button');
+        btn.className = 'choice';
+        btn.innerHTML = '<span class="choice-num">'+(displayPos+1)+'</span><span>'+escapeHtml(choice[lang])+'</span>';
+        btn.addEventListener('click', () => onChoice(canonicalIdx, btn));
+        choicesEl.appendChild(btn);
+    });
+
+    $('statBrain').textContent = memoryBank.length;
+    $('statScore').textContent = score;
+    $('statBest').textContent = best;
+
+    // burden message
+    const bm = $('burdenMsg');
+    bm.classList.remove('heavy', 'crisis');
+    if (memoryBank.length >= 18) {
+        bm.textContent = t.burdenCrisis; bm.classList.add('crisis');
+    } else if (memoryBank.length >= 12) {
+        bm.textContent = t.burdenHeavy; bm.classList.add('heavy');
+    } else if (memoryBank.length >= 6) {
+        bm.textContent = t.burdenMedium;
+    } else {
+        bm.textContent = t.burdenLight;
     }
 }
 
-function closeTutorial() {
-    document.getElementById('tutorial').classList.add('hidden');
+function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, m => (
+        {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]
+    ));
 }
 
-function endGame() {
-    if (!state || state.gameOver) return;
-    state.gameOver = true;
-    cancelAnimationFrame(animId);
+function onChoice(idx, btn) {
+    if (!acceptInput) return;
+    acceptInput = false;
 
-    const rs = document.getElementById('result-screen');
-    document.getElementById('result-title').textContent = t('resultTitle');
-    document.getElementById('result-subtitle').textContent = t('resultSubtitle');
-    document.getElementById('result-stats').innerHTML = `
-        <div class="result-stat"><div class="result-stat-val">${state.score}</div><div class="result-stat-lbl">${t('statScore')}</div></div>
-        <div class="result-stat"><div class="result-stat-val">${state.bestCombo}</div><div class="result-stat-lbl">${t('statCombo')}</div></div>
-        <div class="result-stat"><div class="result-stat-val">${Math.floor(state.distance)}m</div><div class="result-stat-lbl">${t('statDistance')}</div></div>
-        <div class="result-stat"><div class="result-stat-val">${state.level}</div><div class="result-stat-lbl">${t('statLevel')}</div></div>
-    `;
-    document.getElementById('insight-text').textContent = t('insight');
-    rs.classList.add('active');
+    if (phase === 'kioku') {
+        // record memory
+        memoryBank.push({ qIdx: currentQIdx, choiceIdx: idx });
+        usedKiokuQs.add(currentQIdx);
+        btn.classList.add('correct');
+        score++;
+        // animate brain count
+        $('statBrain').textContent = memoryBank.length;
+        $('statScore').textContent = score;
+        setTimeout(() => {
+            acceptInput = true;
+            nextRound();
+        }, 580);
+    } else {
+        const correctIdx = memoryBank[currentMemoryIdx].choiceIdx;
+        if (idx === correctIdx) {
+            btn.classList.add('correct');
+            score++;
+            $('statScore').textContent = score;
+            setTimeout(() => {
+                acceptInput = true;
+                nextRound();
+            }, 580);
+        } else {
+            btn.classList.add('wrong');
+            // reveal the correct one — choices array is in displayOrder
+            const choices = $('choices').children;
+            for (let i = 0; i < choices.length; i++) {
+                const ci = displayOrder[i];
+                if (ci === correctIdx) choices[i].classList.add('correct');
+                else if (ci !== idx) choices[i].classList.add('dim');
+            }
+            // game over
+            setTimeout(() => gameOver(idx, correctIdx), 1100);
+        }
+    }
 }
 
-function restartGame() {
-    document.getElementById('result-screen').classList.remove('active');
-    state = initState();
-    state.player.x = laneX(1);
-    state.player.y = playerY();
-    updateHUD();
-    closeTutorial();
-    lastTime = 0;
-    cancelAnimationFrame(animId);
-    animId = requestAnimationFrame(loop);
+function gameOver(yourIdx, pastIdx) {
+    const t = I18N[lang];
+    const isNewBest = score > best;
+    if (isNewBest) {
+        best = score;
+        saveBest(best);
+    }
+
+    // build the comparison
+    const q = QUESTIONS[currentQIdx];
+    $('overResult').innerHTML =
+        '<div class="over-result-label">'+escapeHtml(t.overResultLabel)+'</div>'+
+        '<div class="over-result-q">'+escapeHtml(q.q[lang])+'</div>'+
+        '<div class="over-row past"><span class="lab">'+escapeHtml(t.overPastLabel)+'</span><strong>'+escapeHtml(q.c[pastIdx][lang])+'</strong></div>'+
+        '<div class="over-row you"><span class="lab">'+escapeHtml(t.overYouLabel)+'</span><strong>'+escapeHtml(q.c[yourIdx][lang])+'</strong></div>';
+
+    $('overStatScore').textContent = score;
+    $('overStatBest').textContent = best;
+    $('bestBadgeWrap').style.display = isNewBest && score > 0 ? 'block' : 'none';
+
+    showScreen('overScreen');
+    updateBestLine();
 }
 
-// ══════════════════════════════════
-//  INIT
-// ══════════════════════════════════
+// ════════════════════════════════════════════
+//   Init
+// ════════════════════════════════════════════
+function init() {
+    best = loadBest();
+    applyLang(loadLang());
+    updateBestLine();
 
-window.addEventListener('resize', () => {
-    if (canvas) resizeCanvas();
-});
-
-const nav = (navigator.language || 'ja').toLowerCase();
-if (nav.startsWith('en')) {
-    LANG = 'en';
-    document.getElementById('lang-btn').textContent = 'JA';
-    applyI18n();
+    $('startBtn').addEventListener('click', startGame);
+    $('againBtn').addEventListener('click', startGame);
+    $('overHomeBtn').addEventListener('click', () => showScreen('homeScreen'));
+    $('homeBtn').addEventListener('click', () => showScreen('homeScreen'));
+    $('langBtn').addEventListener('click', () => applyLang(lang === 'ja' ? 'en' : 'ja'));
 }
+
+init();
 </script>
 </body>
 </html>
