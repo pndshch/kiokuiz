@@ -866,14 +866,24 @@ const I18N = {
 //   State
 // ════════════════════════════════════════════
 let lang = 'ja';
-let memoryBank = [];     // [{qIdx, choiceIdx}]
+let memoryBank = [];     // [{qIdx, choiceIdx}] — choiceIdx is canonical (0..3 into q.c)
 let usedKiokuQs = new Set(); // qIdx already used in kioku
 let score = 0;
 let best = 0;
 let phase = 'kioku';     // 'kioku' | 'quiz'
 let currentQIdx = null;
 let currentMemoryIdx = null; // index in memoryBank when in quiz phase
+let displayOrder = [0,1,2,3]; // shuffled each round: displayPosition → canonical idx
 let acceptInput = true;
+
+function shuffle4() {
+    const a = [0,1,2,3];
+    for (let i = 3; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+}
 
 const $ = id => document.getElementById(id);
 
@@ -985,6 +995,7 @@ function nextRound() {
         currentMemoryIdx = Math.floor(Math.random() * memoryBank.length);
         currentQIdx = memoryBank[currentMemoryIdx].qIdx;
     }
+    displayOrder = shuffle4();
     renderQuestion();
 }
 
@@ -1001,11 +1012,12 @@ function renderQuestion() {
 
     const choicesEl = $('choices');
     choicesEl.innerHTML = '';
-    q.c.forEach((choice, idx) => {
+    displayOrder.forEach((canonicalIdx, displayPos) => {
+        const choice = q.c[canonicalIdx];
         const btn = document.createElement('button');
         btn.className = 'choice';
-        btn.innerHTML = '<span class="choice-num">'+(idx+1)+'</span><span>'+escapeHtml(choice[lang])+'</span>';
-        btn.addEventListener('click', () => onChoice(idx, btn));
+        btn.innerHTML = '<span class="choice-num">'+(displayPos+1)+'</span><span>'+escapeHtml(choice[lang])+'</span>';
+        btn.addEventListener('click', () => onChoice(canonicalIdx, btn));
         choicesEl.appendChild(btn);
     });
 
@@ -1062,11 +1074,12 @@ function onChoice(idx, btn) {
             }, 580);
         } else {
             btn.classList.add('wrong');
-            // also reveal the correct one
+            // reveal the correct one — choices array is in displayOrder
             const choices = $('choices').children;
             for (let i = 0; i < choices.length; i++) {
-                if (i === correctIdx) choices[i].classList.add('correct');
-                else if (i !== idx) choices[i].classList.add('dim');
+                const ci = displayOrder[i];
+                if (ci === correctIdx) choices[i].classList.add('correct');
+                else if (ci !== idx) choices[i].classList.add('dim');
             }
             // game over
             setTimeout(() => gameOver(idx, correctIdx), 1100);
